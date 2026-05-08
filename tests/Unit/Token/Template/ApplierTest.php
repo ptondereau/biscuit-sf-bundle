@@ -15,6 +15,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Applier::class)]
+#[CoversClass(BiscuitBuilderAdapter::class)]
+#[CoversClass(BlockBuilderAdapter::class)]
 final class ApplierTest extends TestCase
 {
     #[Test]

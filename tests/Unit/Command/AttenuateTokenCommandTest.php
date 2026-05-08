@@ -187,6 +187,28 @@ final class AttenuateTokenCommandTest extends TestCase
         self::assertStringContainsString('3', $output);
     }
 
+    #[Test]
+    public function itCoercesFalseAndNullParameterValues(): void
+    {
+        $tokenManager = $this->createRealTokenManager();
+        $parentBase64 = $this->buildParentToken($tokenManager);
+
+        $tester = $this->createCommandTester($tokenManager, [
+            'falsy' => [
+                'checks' => ['check if active({flag})'],
+            ],
+        ]);
+
+        $tester->execute([
+            'token' => $parentBase64,
+            '--template' => 'falsy',
+            '--param' => ['flag=false', 'unused_null=null'],
+        ]);
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        self::assertStringContainsString('false', $tester->getDisplay());
+    }
+
     /**
      * @param array<string, array{facts?: list<string>, checks?: list<string>, rules?: list<string>}> $templates
      */

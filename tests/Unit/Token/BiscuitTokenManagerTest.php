@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 #[CoversClass(BiscuitTokenManager::class)]
+#[CoversClass(BiscuitTokenAttenuatedEvent::class)]
 final class BiscuitTokenManagerTest extends TestCase
 {
     #[Test]
