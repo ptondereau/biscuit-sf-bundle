@@ -131,6 +131,62 @@ final class AttenuateTokenCommandTest extends TestCase
         self::assertStringContainsString('--template or --code', $tester->getDisplay());
     }
 
+    #[Test]
+    public function itFailsGracefullyOnMalformedTokenInput(): void
+    {
+        $tokenManager = $this->createRealTokenManager();
+        $tester = $this->createCommandTester($tokenManager, [
+            'read_only' => ['checks' => ['check if operation("read")']],
+        ]);
+
+        $tester->execute([
+            'token' => 'this is not valid base64',
+            '--template' => 'read_only',
+        ]);
+
+        self::assertSame(Command::FAILURE, $tester->getStatusCode());
+        self::assertStringContainsString('Failed to attenuate token', $tester->getDisplay());
+    }
+
+    #[Test]
+    public function itShowsHelpWhenNoBlockTemplatesConfigured(): void
+    {
+        $tokenManager = $this->createMock(BiscuitTokenManagerInterface::class);
+        $tester = $this->createCommandTester($tokenManager, []);
+
+        $tester->execute(['token' => 'unused', '--list' => true]);
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $output = $tester->getDisplay();
+        self::assertStringContainsString('No block templates configured', $output);
+        self::assertStringContainsString('block_templates', $output);
+    }
+
+    #[Test]
+    public function itCoercesParameterTypesFromCommandLine(): void
+    {
+        $tokenManager = $this->createRealTokenManager();
+        $parentBase64 = $this->buildParentToken($tokenManager);
+
+        $tester = $this->createCommandTester($tokenManager, [
+            'mixed_params' => [
+                'checks' => ['check if user($u), $u == {who}, active({flag}), retries({n})'],
+            ],
+        ]);
+
+        $tester->execute([
+            'token' => $parentBase64,
+            '--template' => 'mixed_params',
+            '--param' => ['who=alice', 'flag=true', 'n=3', 'malformed_no_equals'],
+        ]);
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $output = $tester->getDisplay();
+        self::assertStringContainsString('"alice"', $output);
+        self::assertStringContainsString('true', $output);
+        self::assertStringContainsString('3', $output);
+    }
+
     /**
      * @param array<string, array{facts?: list<string>, checks?: list<string>, rules?: list<string>}> $templates
      */

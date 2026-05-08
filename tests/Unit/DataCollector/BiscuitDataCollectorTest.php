@@ -246,6 +246,29 @@ final class BiscuitDataCollectorTest extends TestCase
     }
 
     #[Test]
+    public function resetClearsRecordedAttenuations(): void
+    {
+        $collector = new BiscuitDataCollector();
+
+        $parent = $this->createMock(Biscuit::class);
+        $parent->method('revocationIds')->willReturn([]);
+        $parent->method('toBase64')->willReturn('PARENT');
+        $child = $this->createMock(Biscuit::class);
+        $child->method('revocationIds')->willReturn([]);
+        $child->method('toBase64')->willReturn('PARENT_PLUS');
+
+        $collector->onAttenuated(new BiscuitTokenAttenuatedEvent($parent, 'check if true', $child));
+        $collector->collect(new Request(), new Response());
+        self::assertSame(1, $collector->getAttenuationCount());
+
+        $collector->reset();
+        $collector->collect(new Request(), new Response());
+
+        self::assertSame(0, $collector->getAttenuationCount());
+        self::assertSame([], $collector->getAttenuations());
+    }
+
+    #[Test]
     public function itCountsAllFailedChecks(): void
     {
         $collector = new BiscuitDataCollector();
