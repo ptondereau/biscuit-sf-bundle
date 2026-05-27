@@ -90,19 +90,23 @@ final class ApplierTest extends TestCase
     }
 
     #[Test]
-    public function populatesAuthorizerBuilderWithFactsFromTemplate(): void
+    public function populatesAuthorizerBuilderWithAllTermTypes(): void
     {
         $authorizerBuilder = new AuthorizerBuilder();
         $adapter = new AuthorizerBuilderAdapter($authorizerBuilder);
         $template = new Template(
             facts: ['operation("credit_wallet")', 'amount({amount})'],
+            checks: ['check if time($t), $t <= {now}'],
+            rules: ['allowed($r) <- resource($r)'],
         );
 
-        (new Applier())->populate($adapter, $template, ['amount' => 50000]);
+        (new Applier())->populate($adapter, $template, ['amount' => 50000, 'now' => 1000]);
 
         $source = (string) $authorizerBuilder;
         self::assertStringContainsString('operation("credit_wallet")', $source);
         self::assertStringContainsString('50000', $source);
+        self::assertStringContainsString('time($t)', $source);
+        self::assertStringContainsString('allowed($r)', $source);
     }
 
     #[Test]
