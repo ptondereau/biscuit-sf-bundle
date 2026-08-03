@@ -28,6 +28,8 @@ jobs:
           - { php: '8.5', symfony: '7.4.*' }
           - { php: '8.4', symfony: '8.0.*' }
           - { php: '8.5', symfony: '8.0.*' }
+          - { php: '8.4', symfony: '8.1.*' }
+          - { php: '8.5', symfony: '8.1.*' }
           - { php: '8.1', symfony: '6.4.*', deps: 'lowest' }
           - { php: '8.2', symfony: '7.4.*', deps: 'lowest' }
           - { php: '8.4', symfony: '8.0.*', deps: 'lowest' }
@@ -73,6 +75,10 @@ jobs:
           composer require --no-update --no-interaction --dev \
             "symfony/cache:${{ matrix.symfony }}" \
             "symfony/web-profiler-bundle:${{ matrix.symfony }}" \
+            "symfony/twig-bundle:${{ matrix.symfony }}" \
+            "symfony/browser-kit:${{ matrix.symfony }}" \
+            "symfony/css-selector:${{ matrix.symfony }}" \
+            "symfony/runtime:${{ matrix.symfony }}" \
             "symfony/yaml:${{ matrix.symfony }}"
 
       - name: Install dependencies
@@ -128,6 +134,10 @@ jobs:
           composer require --no-update --no-interaction --dev \
             "symfony/cache:7.4.*" \
             "symfony/web-profiler-bundle:7.4.*" \
+            "symfony/twig-bundle:7.4.*" \
+            "symfony/browser-kit:7.4.*" \
+            "symfony/css-selector:7.4.*" \
+            "symfony/runtime:7.4.*" \
             "symfony/yaml:7.4.*"
 
       - name: Install dependencies
@@ -142,3 +152,55 @@ jobs:
           file: coverage.xml
           format: clover
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  no-optional-deps:
+    name: Without optional dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: pie, composer:v2
+          coverage: none
+        env:
+          fail-fast: true
+
+      - name: Install biscuit-php extension (prebuilt only)
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "::group::pie install attempt $attempt"
+            output=$(sudo pie install ptondereau/biscuit-php:0.5.1 --no-interaction --no-cache 2>&1 || true)
+            echo "$output"
+            echo "::endgroup::"
+            if echo "$output" | grep -q "Pre-packaged binary found"; then
+              echo "✓ Installed prebuilt biscuit_php on attempt $attempt"
+              exit 0
+            fi
+            echo "::warning::pie did not pick the prebuilt binary on attempt $attempt; retrying..."
+            sleep 5
+          done
+          echo "::error::pie failed to install prebuilt biscuit_php after 3 attempts"
+          exit 1
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Drop every suggested package
+        run: composer remove --dev --no-interaction symfony/cache symfony/maker-bundle symfony/yaml
+
+      - name: Boot without the optional packages
+        run: vendor/bin/phpunit --testsuite unit
+
+      - name: Fail loudly when a dropped package is required by configuration
+        run: |
+          set -euo pipefail
+          if composer show symfony/cache >/dev/null 2>&1; then
+            echo "::error::symfony/cache is still installed; this job proves nothing"
+            exit 1
+          fi
+          echo "✓ symfony/cache is absent and the unit suite still passes"
