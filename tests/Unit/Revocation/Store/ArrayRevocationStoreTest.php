@@ -75,7 +75,7 @@ final class ArrayRevocationStoreTest extends TestCase
         $store->revoke(new RevocationEntry('abc', reason: 'first'));
         $store->revoke(new RevocationEntry('abc', reason: 'second'));
 
-        $entries = iterator_to_array($store->all(), false);
+        $entries = $this->entries($store);
 
         self::assertCount(1, $entries);
         self::assertSame('second', $entries[0]->reason);
@@ -91,7 +91,7 @@ final class ArrayRevocationStoreTest extends TestCase
 
         $subjects = array_map(
             static fn (RevocationEntry $entry): ?string => $entry->subject,
-            iterator_to_array($store->all(), false),
+            $this->entries($store),
         );
 
         self::assertSame(['alice', 'bob'], $subjects);
@@ -121,5 +121,19 @@ final class ArrayRevocationStoreTest extends TestCase
 
         self::assertSame(0, $store->purgeExpired(new DateTimeImmutable('2099-01-01T00:00:00Z')));
         self::assertSame('forever', $store->findRevoked(['forever']));
+    }
+
+    /**
+     * @return list<RevocationEntry>
+     */
+    private function entries(EnumerableRevocationStoreInterface $store): array
+    {
+        $entries = [];
+
+        foreach ($store->all() as $entry) {
+            $entries[] = $entry;
+        }
+
+        return $entries;
     }
 }

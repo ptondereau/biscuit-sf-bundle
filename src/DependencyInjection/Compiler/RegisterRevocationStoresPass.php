@@ -64,7 +64,7 @@ final class RegisterRevocationStoresPass implements CompilerPassInterface
             return;
         }
 
-        throw new InvalidConfigurationException(sprintf('biscuit.revocation.stores.cache is enabled but the cache pool "%s" does not exist. Run "composer require symfony/cache", or point biscuit.revocation.stores.cache.pool at a pool your application already defines.', $missing));
+        throw new InvalidConfigurationException(sprintf('biscuit.revocation.stores.cache is enabled but the cache pool "%s" does not exist. Point biscuit.revocation.stores.cache.pool at a pool your application defines, or set biscuit.revocation.stores.cache.adapter to an adapter that exists.', $missing));
     }
 
     private function firstMissingPoolId(ContainerBuilder $container, string $poolId): ?string

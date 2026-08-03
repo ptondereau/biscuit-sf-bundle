@@ -93,7 +93,7 @@ final class StaticRevocationStoreTest extends TestCase
         $store = new StaticRevocationStore(['  abc  ', '', '   ']);
 
         self::assertSame('abc', $store->findRevoked(['abc']));
-        self::assertCount(1, iterator_to_array($store->all(), false));
+        self::assertCount(1, $this->entries($store));
     }
 
     #[Test]
@@ -101,7 +101,7 @@ final class StaticRevocationStoreTest extends TestCase
     {
         $store = new StaticRevocationStore(['abc', 42, null, true]);
 
-        self::assertCount(1, iterator_to_array($store->all(), false));
+        self::assertCount(1, $this->entries($store));
     }
 
     #[Test]
@@ -111,7 +111,7 @@ final class StaticRevocationStoreTest extends TestCase
 
         $ids = array_map(
             static fn (RevocationEntry $entry): string => $entry->revocationId,
-            iterator_to_array($store->all(), false),
+            $this->entries($store),
         );
 
         self::assertSame(['abc', 'def'], $ids);
@@ -125,7 +125,7 @@ final class StaticRevocationStoreTest extends TestCase
         $store = new StaticRevocationStore([], $file);
 
         self::assertSame('ghi', $store->findRevoked(['ghi']));
-        self::assertCount(3, iterator_to_array($store->all(), false));
+        self::assertCount(3, $this->entries($store));
     }
 
     #[Test]
@@ -190,5 +190,19 @@ final class StaticRevocationStoreTest extends TestCase
         $this->temporaryFiles[] = $file;
 
         return $file;
+    }
+
+    /**
+     * @return list<RevocationEntry>
+     */
+    private function entries(EnumerableRevocationStoreInterface $store): array
+    {
+        $entries = [];
+
+        foreach ($store->all() as $entry) {
+            $entries[] = $entry;
+        }
+
+        return $entries;
     }
 }

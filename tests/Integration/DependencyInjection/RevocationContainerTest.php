@@ -63,10 +63,10 @@ final class RevocationContainerTest extends TestCase
     }
 
     #[Test]
-    public function itPointsAtSymfonyCacheWhenTheConfiguredPoolDoesNotExist(): void
+    public function itNamesTheMissingPoolWhenTheCacheStoreCannotResolveIt(): void
     {
         $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessageMatches('/composer require symfony\\/cache/');
+        $this->expectExceptionMessageMatches('/cache pool "cache.app" does not exist/');
 
         $this->compile(
             [

@@ -76,6 +76,9 @@ jobs:
             "symfony/cache:${{ matrix.symfony }}" \
             "symfony/web-profiler-bundle:${{ matrix.symfony }}" \
             "symfony/twig-bundle:${{ matrix.symfony }}" \
+            "symfony/twig-bridge:${{ matrix.symfony }}" \
+            "symfony/property-access:${{ matrix.symfony }}" \
+            "symfony/property-info:${{ matrix.symfony }}" \
             "symfony/browser-kit:${{ matrix.symfony }}" \
             "symfony/css-selector:${{ matrix.symfony }}" \
             "symfony/runtime:${{ matrix.symfony }}" \
@@ -135,6 +138,9 @@ jobs:
             "symfony/cache:7.4.*" \
             "symfony/web-profiler-bundle:7.4.*" \
             "symfony/twig-bundle:7.4.*" \
+            "symfony/twig-bridge:7.4.*" \
+            "symfony/property-access:7.4.*" \
+            "symfony/property-info:7.4.*" \
             "symfony/browser-kit:7.4.*" \
             "symfony/css-selector:7.4.*" \
             "symfony/runtime:7.4.*" \
@@ -153,8 +159,8 @@ jobs:
           format: clover
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  no-optional-deps:
-    name: Without optional dependencies
+  consumer-install:
+    name: Consumer install
     runs-on: ubuntu-latest
 
     steps:
@@ -164,43 +170,55 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          tools: pie, composer:v2
+          tools: composer:v2
           coverage: none
         env:
           fail-fast: true
 
-      - name: Install biscuit-php extension (prebuilt only)
+      - name: Install the way a consumer would
+        run: composer install --no-dev --no-progress --ignore-platform-req=ext-biscuit_php
+
+      - name: Every interface a shipped class typehints must be installed
         run: |
           set -euo pipefail
-          for attempt in 1 2 3; do
-            echo "::group::pie install attempt $attempt"
-            output=$(sudo pie install ptondereau/biscuit-php:0.5.1 --no-interaction --no-cache 2>&1 || true)
-            echo "$output"
-            echo "::endgroup::"
-            if echo "$output" | grep -q "Pre-packaged binary found"; then
-              echo "✓ Installed prebuilt biscuit_php on attempt $attempt"
-              exit 0
+          for package in psr/cache psr/log symfony/event-dispatcher-contracts; do
+            if ! composer show "$package" >/dev/null 2>&1; then
+              echo "::error::$package is used by a shipped class but missing from a --no-dev install"
+              exit 1
             fi
-            echo "::warning::pie did not pick the prebuilt binary on attempt $attempt; retrying..."
-            sleep 5
+            echo "✓ $package"
           done
-          echo "::error::pie failed to install prebuilt biscuit_php after 3 attempts"
-          exit 1
 
-      - name: Install dependencies
-        uses: ramsey/composer-install@v3
-
-      - name: Drop every suggested package
-        run: composer remove --dev --no-interaction symfony/cache symfony/maker-bundle symfony/yaml
-
-      - name: Boot without the optional packages
-        run: vendor/bin/phpunit --testsuite unit
-
-      - name: Fail loudly when a dropped package is required by configuration
+      - name: No suggested package may be needed to load the bundle
         run: |
           set -euo pipefail
-          if composer show symfony/cache >/dev/null 2>&1; then
-            echo "::error::symfony/cache is still installed; this job proves nothing"
-            exit 1
-          fi
-          echo "✓ symfony/cache is absent and the unit suite still passes"
+          for package in symfony/maker-bundle symfony/web-profiler-bundle symfony/yaml; do
+            if composer show "$package" >/dev/null 2>&1; then
+              echo "::error::$package leaked into a --no-dev install; it should stay a suggestion"
+              exit 1
+            fi
+          done
+          php -r '
+            require "vendor/autoload.php";
+            $classes = [
+              "Biscuit\\BiscuitBundle\\BiscuitBundle",
+              "Biscuit\\BiscuitBundle\\DependencyInjection\\BiscuitExtension",
+              "Biscuit\\BiscuitBundle\\Revocation\\RevocationChecker",
+              "Biscuit\\BiscuitBundle\\Revocation\\Store\\CacheRevocationStore",
+              "Biscuit\\BiscuitBundle\\Security\\Http\\AuthenticationFailureResponseFactory",
+            ];
+            foreach ($classes as $class) {
+              if (!class_exists($class)) {
+                fwrite(STDERR, "missing: $class\n");
+                exit(1);
+              }
+              foreach ((new ReflectionClass($class))->getConstructor()?->getParameters() ?? [] as $parameter) {
+                $type = $parameter->getType();
+                if ($type instanceof ReflectionNamedType && !$type->isBuiltin() && !class_exists($type->getName()) && !interface_exists($type->getName())) {
+                  fwrite(STDERR, sprintf("%s typehints missing %s\n", $class, $type->getName()));
+                  exit(1);
+                }
+              }
+              echo "ok: $class\n";
+            }
+          '

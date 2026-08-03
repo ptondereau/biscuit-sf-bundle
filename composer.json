@@ -22,7 +22,7 @@
     "symfony/security-bundle": "^6.4 || ^7.0 || ^8.0"
   },
   "require-dev": {
-    "friendsofphp/php-cs-fixer": "^3.64",
+    "friendsofphp/php-cs-fixer": "^3.90",
     "phpstan/phpstan": "^2.0",
     "phpstan/phpstan-phpunit": "^2.0",
     "phpstan/phpstan-symfony": "^2.0",
@@ -38,7 +38,6 @@
     "symfony/yaml": "^6.4 || ^7.0 || ^8.0"
   },
   "suggest": {
-    "symfony/cache": "To back the revocation list with a PSR-6 pool (biscuit.revocation.stores.cache)",
     "symfony/maker-bundle": "To scaffold policy classes with make:biscuit-policy",
     "symfony/web-profiler-bundle": "To inspect tokens, policy checks and revocation in the profiler",
     "symfony/yaml": "To load Datalog fixtures from YAML in tests"
