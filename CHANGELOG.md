@@ -32,6 +32,8 @@ See [UPGRADE-0.4.md](UPGRADE-0.4.md) for migration steps.
 - `biscuit.revocation.on_unavailable` must be set explicitly whenever revocation is enabled. There is no default because the right answer depends on whether an unreachable revocation list should take your API down.
 - Enabling revocation with no store configured fails the container build. It used to be possible to have revocation reported as active while every token passed.
 - Tagging a service `biscuit.revocation_enumerable_store` when it cannot enumerate its entries fails the container build, matching the checks already done on the store and writer tags. It used to compile and then fail at runtime inside `biscuit:revocation:list`.
+- `biscuit:policy:test` applies the authorizer fact template named after the policy, so it reproduces the authorizer the voter builds. Pass the template parameters as `--param`. The command used to ignore `authorizer_fact_templates` entirely and could report a pass for a policy the voter denies.
+- `Authorizer\AuthorizerBuilderFactory` (service `biscuit.authorizer_builder_factory`) owns authorizer setup for both the voter and the command. `BiscuitVoter` takes it as its third constructor argument in place of the `Applier` and the fact template array, so a manually constructed voter needs updating; the container wires it for you.
 
 ### Removed
 

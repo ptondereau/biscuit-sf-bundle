@@ -322,6 +322,12 @@ When `credit_authorized` is evaluated, the voter applies the same-named fact tem
 
 A *missing* key denies the check. If the policy or the fact template references a parameter the `subject:` array does not provide, the voter votes deny, records a failed check in the profiler and logs a warning naming the policy and the error behind it. A malformed Datalog snippet in the template behaves the same way.
 
+`Authorizer\AuthorizerBuilderFactory` (service `biscuit.authorizer_builder_factory`) does this setup, and `biscuit:policy:test` uses the same service. Pass the template parameters as `--param` and the command builds the authorizer the voter would build:
+
+```bash
+bin/console biscuit:policy:test credit_authorized -p amount=50 -p req_zone=algiers -t "$TOKEN"
+```
+
 ## Token Templates
 
 Define reusable token shapes in configuration:

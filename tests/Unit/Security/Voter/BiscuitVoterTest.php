@@ -9,6 +9,7 @@ use Biscuit\Auth\BiscuitBuilder;
 use Biscuit\Auth\Check;
 use Biscuit\Auth\Fact;
 use Biscuit\Auth\KeyPair;
+use Biscuit\BiscuitBundle\Authorizer\AuthorizerBuilderFactory;
 use Biscuit\BiscuitBundle\DataCollector\BiscuitDataCollector;
 use Biscuit\BiscuitBundle\Policy\PolicyRegistry;
 use Biscuit\BiscuitBundle\Security\User\BiscuitUser;
@@ -318,8 +319,7 @@ final class BiscuitVoterTest extends TestCase
         $voter = new BiscuitVoter(
             $registry,
             null,
-            new Applier(),
-            ['credit' => ['facts' => ['amount({amount})']]],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
         );
 
         $user = new BiscuitUser($this->buildAgentToken(), 'agent-1');
@@ -372,8 +372,7 @@ final class BiscuitVoterTest extends TestCase
         $voter = new BiscuitVoter(
             $registry,
             null,
-            new Applier(),
-            ['credit' => ['facts' => ['amount({amount})']]],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
         );
 
         $token = $this->createMock(TokenInterface::class);
@@ -406,8 +405,7 @@ final class BiscuitVoterTest extends TestCase
         $voter = new BiscuitVoter(
             $registry,
             $collector,
-            new Applier(),
-            ['credit' => ['facts' => ['amount({amount})']]],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
         );
 
         $token = $this->createMock(TokenInterface::class);
@@ -440,8 +438,7 @@ final class BiscuitVoterTest extends TestCase
         $voter = new BiscuitVoter(
             $registry,
             null,
-            new Applier(),
-            ['credit' => ['facts' => ['amount({amount})']]],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
             $logger,
         );
 
@@ -463,8 +460,7 @@ final class BiscuitVoterTest extends TestCase
         $voter = new BiscuitVoter(
             $registry,
             null,
-            new Applier(),
-            ['credit' => ['facts' => ['amount({amount})']]],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
             $logger,
         );
 

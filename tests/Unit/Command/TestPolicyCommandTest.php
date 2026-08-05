@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Biscuit\BiscuitBundle\Tests\Unit\Command;
 
 use Biscuit\Auth\KeyPair;
+use Biscuit\BiscuitBundle\Authorizer\AuthorizerBuilderFactory;
 use Biscuit\BiscuitBundle\Command\TestPolicyCommand;
 use Biscuit\BiscuitBundle\Key\KeyManager;
 use Biscuit\BiscuitBundle\Policy\PolicyRegistry;
 use Biscuit\BiscuitBundle\Tests\ConsoleApplicationTrait;
 use Biscuit\BiscuitBundle\Token\BiscuitTokenManager;
 use Biscuit\BiscuitBundle\Token\BiscuitTokenManagerInterface;
+use Biscuit\BiscuitBundle\Token\Template\Applier;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\Attributes\Test;
@@ -133,6 +135,27 @@ final class TestPolicyCommandTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('biscuit_php')]
+    public function itAppliesTheAuthorizerFactTemplateTheVoterWouldApply(): void
+    {
+        $commandTester = $this->createCommandTester(
+            ['credit' => 'allow if amount($a), $a <= 100'],
+            new AuthorizerBuilderFactory(new Applier(), ['credit' => ['facts' => ['amount({amount})']]]),
+        );
+
+        $commandTester->execute([
+            'policy' => 'credit',
+            '--param' => ['amount=50'],
+        ]);
+
+        self::assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+
+        $output = $commandTester->getDisplay();
+        self::assertStringContainsString('amount(50)', $output);
+        self::assertStringContainsString('Authorization PASSED', $output);
+    }
+
+    #[Test]
+    #[RequiresPhpExtension('biscuit_php')]
     public function itTestsPolicyWithParameters(): void
     {
         $commandTester = $this->createCommandTester([
@@ -234,12 +257,12 @@ final class TestPolicyCommandTest extends TestCase
     /**
      * @param array<string, string> $policies
      */
-    private function createCommandTester(array $policies): CommandTester
+    private function createCommandTester(array $policies, ?AuthorizerBuilderFactory $authorizerBuilderFactory = null): CommandTester
     {
         $tokenManager = $this->createTokenManager();
         $registry = new PolicyRegistry($policies);
 
-        $command = new TestPolicyCommand($registry, $tokenManager);
+        $command = new TestPolicyCommand($registry, $tokenManager, $authorizerBuilderFactory ?? new AuthorizerBuilderFactory());
 
         $application = new Application();
         $this->addCommandToApplication($application, $command);
