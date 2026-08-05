@@ -111,6 +111,28 @@ final class TestPolicyCommandTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('biscuit_php')]
+    public function itTestsPolicyWithATokenCarryingAnExpiryCheck(): void
+    {
+        $tokenManager = $this->createTokenManager();
+        $builder = $tokenManager->createBuilder('user("token_user"); check if time($t), $t < 2099-01-01T00:00:00Z;');
+        $token = $tokenManager->serialize($tokenManager->build($builder));
+
+        $commandTester = $this->createCommandTesterWithManager(
+            ['has_user' => 'allow if user($u)'],
+            $tokenManager,
+        );
+
+        $commandTester->execute([
+            'policy' => 'has_user',
+            '--token' => $token,
+        ]);
+
+        self::assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+        self::assertStringContainsString('Authorization PASSED', $commandTester->getDisplay());
+    }
+
+    #[Test]
+    #[RequiresPhpExtension('biscuit_php')]
     public function itTestsPolicyWithParameters(): void
     {
         $commandTester = $this->createCommandTester([

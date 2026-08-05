@@ -109,6 +109,7 @@ final class TestPolicyCommand extends Command
 
         try {
             $authorizerBuilder = new AuthorizerBuilder();
+            $authorizerBuilder->setTime();
 
             foreach ($factStrings as $factString) {
                 if ('' === $factString) {

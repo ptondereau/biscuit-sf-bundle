@@ -6,6 +6,7 @@ namespace Biscuit\BiscuitBundle\Tests\Unit\Security\Voter;
 
 use Biscuit\Auth\Biscuit;
 use Biscuit\Auth\BiscuitBuilder;
+use Biscuit\Auth\Check;
 use Biscuit\Auth\Fact;
 use Biscuit\Auth\KeyPair;
 use Biscuit\BiscuitBundle\DataCollector\BiscuitDataCollector;
@@ -333,6 +334,36 @@ final class BiscuitVoterTest extends TestCase
     }
 
     #[Test]
+    public function itGrantsWhenTheTokenExpiryIsInTheFuture(): void
+    {
+        $registry = new PolicyRegistry([
+            'credit' => 'allow if role("agent")',
+        ]);
+        $voter = new BiscuitVoter($registry);
+
+        $user = new BiscuitUser($this->buildAgentToken('2099-01-01T00:00:00Z'), 'agent-1');
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        self::assertSame(Voter::ACCESS_GRANTED, $voter->vote($token, null, ['credit']));
+    }
+
+    #[Test]
+    public function itDeniesWhenTheTokenHasExpired(): void
+    {
+        $registry = new PolicyRegistry([
+            'credit' => 'allow if role("agent")',
+        ]);
+        $voter = new BiscuitVoter($registry);
+
+        $user = new BiscuitUser($this->buildAgentToken('2020-01-01T00:00:00Z'), 'agent-1');
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        self::assertSame(Voter::ACCESS_DENIED, $voter->vote($token, null, ['credit']));
+    }
+
+    #[Test]
     public function itDeniesWhenFactTemplateParameterIsMissing(): void
     {
         $registry = new PolicyRegistry([
@@ -443,11 +474,15 @@ final class BiscuitVoterTest extends TestCase
         self::assertSame(Voter::ACCESS_DENIED, $voter->vote($token, ['amount' => 150], ['credit']));
     }
 
-    private function buildAgentToken(): Biscuit
+    private function buildAgentToken(?string $expiry = null): Biscuit
     {
         $keyPair = new KeyPair();
         $builder = new BiscuitBuilder();
         $builder->addFact(new Fact('role("agent")'));
+
+        if (null !== $expiry) {
+            $builder->addCheck(new Check('check if time($t), $t < ' . $expiry));
+        }
 
         return $builder->build($keyPair->getPrivateKey());
     }

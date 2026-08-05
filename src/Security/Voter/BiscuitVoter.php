@@ -56,6 +56,7 @@ final class BiscuitVoter extends Voter
         $this->dataCollector?->setPolicies($this->policyRegistry->all());
 
         $authBuilder = new AuthorizerBuilder();
+        $authBuilder->setTime();
 
         try {
             $authBuilder->addPolicy($policy);
@@ -91,7 +92,7 @@ final class BiscuitVoter extends Voter
      * Inject request-context facts into the authorizer from the fact template
      * named after the policy. Token checks (caps, zone, expiry) and the policy
      * itself can only reason about request attributes that live in the
-     * authorizer, so this is where amount/geo/wallet_tier/time/etc. enter.
+     * authorizer, so this is where amount/geo/wallet_tier/etc. enter.
      *
      * @param array<string, mixed> $params
      */
